@@ -871,6 +871,10 @@ config SOC_CAMERA_OV9640
 	depends on SOC_CAMERA && I2C
 	help
 	  This is a ov9640 camera driver
+	  
+comment "IROQ5 headboard"
+
+source "drivers/media/video/i5ccdhb/Kconfig"
 
 config SOC_CAMERA_OV9740
 	tristate "ov9740 camera support"

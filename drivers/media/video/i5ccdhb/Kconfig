@@ -1,0 +1,35 @@
+
+if VIDEO_V4L2
+
+menu "IROQ5 camera headboard support"
+
+config IROQ5_OSC_DS1086L
+	tristate "DS1086L oscillator support for IROQ5"
+	depends on I2C && SYSFS
+	default n
+	---help---
+	  Use IROQ5 oscillator support
+
+config IROQ5_AFE_AD9923A
+	tristate "AD9923A AFE support for IROQ5"
+	depends on SPI && SYSFS
+	default n
+	---help---
+	  Use Analog devices AFE AD9320 support
+
+config SOC_CAMERA_IROQ5_CCDHB
+	tristate "IROQ5 CCD HEADBOARD camera support"
+	depends on ARCH_OMAP3
+	depends on I2C && SPI && SYSFS
+#	depends on SOC_CAMERA
+	select IROQ5_OSC_DS1086L
+	select IROQ5_AFE_AD9923A
+#	select IROQ5_ADAPCL_FPGA
+	select EEPROM_AT24
+	select SENSORS_LM73
+	---help---
+	  If you plan to use the IROQ5 CCD HEADBOARD Camera with your system, say Y here.
+
+endmenu
+
+endif

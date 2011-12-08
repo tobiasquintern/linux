@@ -53,6 +53,44 @@
 #include "pm.h"
 #include "common-board-devices.h"
 
+#if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
+#include <linux/videodev2.h>
+#include <media/v4l2-device.h>
+#include <../drivers/media/video/omap3isp/isp.h>
+#include <media/i5ccdhb/i5ccdhb.h>
+#include "devices.h"
+#else
+#error "CONFIG_SOC_CAMERA_IROQ5_CCDHB must be defined!"
+
+#endif
+
+#if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
+
+static struct isp_platform_data isp_plat_data;
+
+static struct soc_i5ccdhb_platform_data omap3evm_soc_i5ccdhb_pdata = {
+  	.i2c_adapter_id = 2, /* bind to SPI2 */
+    .afe_spi_master_id = 3, /* bind to McSPI3 (spi3) */
+    .afe_spi_chipselect = 0, /* bind to McSPI3 CS0 -> ADapCL SS1 */
+    .afe_spi_maxspeed = 2000000,
+    .vdr_en_gpio = 144, /* GPIO 144 controls VDR_EN */
+    
+};
+
+struct platform_device omap3evm_i5ccdhb_device = {
+	.name = "i5ccdhb", /* name must match the driver name */
+	.id = 0,
+	.dev = {
+		.platform_data = &omap3evm_soc_i5ccdhb_pdata,
+  },
+	.num_resources = 0,
+	.resource = NULL,
+};
+
+
+#endif /* defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE) */
+
+
 /*
  * OMAP3 Beagle revision
  * Run time detection of Beagle revision is done by reading GPIO.
@@ -459,6 +497,9 @@ static void __init omap3_beagle_init_irq(void)
 static struct platform_device *omap3_beagle_devices[] __initdata = {
 	&leds_gpio,
 	&keys_gpio,
+  #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
+	&omap3evm_i5ccdhb_device,
+#endif
 };
 
 static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
@@ -522,6 +563,30 @@ static void __init beagle_opp_init(void)
 	return;
 }
 
+#if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
+static void __init omap3_beagle_init_i5ccdhb(void)
+{
+        
+  
+  /* Init SPI3 Pins for Headboard */
+  omap_mux_init_signal("sdmmc2_clk.mcspi3_clk", OMAP_PIN_OUTPUT);
+  omap_mux_init_signal("sdmmc2_cmd.mcspi3_simo", OMAP_PIN_OUTPUT);
+  omap_mux_init_signal("sdmmc2_dat3.mcspi3_cs0", OMAP_PIN_OUTPUT);
+  
+  /* Init VDR_EN pin */
+  omap_mux_init_signal("gpio_144", OMAP_PIN_OUTPUT); /* VDREN */  
+  
+  /* Init I2C2 Pins */
+  omap_mux_init_signal("i2c2_scl", OMAP_PIN_OUTPUT);
+  omap_mux_init_signal("i2c2_sda", OMAP_PIN_OUTPUT);
+
+  /* Register I2C Bus */  
+  omap_register_i2c_bus( 2 , 100, NULL, 0 );
+
+}
+#endif /* #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE) */
+
+
 static void __init omap3_beagle_init(void)
 {
 	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
@@ -533,9 +598,9 @@ static void __init omap3_beagle_init(void)
 	platform_add_devices(omap3_beagle_devices,
 			ARRAY_SIZE(omap3_beagle_devices));
 	omap_display_init(&beagle_dss_data);
-	omap_serial_init();
-
-	omap_mux_init_gpio(170, OMAP_PIN_INPUT);
+  omap_serial_init();
+  
+  omap_mux_init_gpio(170, OMAP_PIN_INPUT);
 	/* REVISIT leave DVI powered down until it's needed ... */
 	gpio_request_one(170, GPIOF_OUT_INIT_HIGH, "DVI_nPD");
 
@@ -553,6 +618,13 @@ static void __init omap3_beagle_init(void)
 
 	beagle_display_init();
 	beagle_opp_init();
+
+#if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)  
+  /* Register ISP & I5CCDHB */
+  omap3_init_camera( &isp_plat_data );
+	omap3_beagle_init_i5ccdhb();
+#endif /* #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE) */
+  
 }
 
 MACHINE_START(OMAP3_BEAGLE, "OMAP3 Beagle Board")
