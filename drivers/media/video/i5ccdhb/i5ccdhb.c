@@ -54,9 +54,12 @@
 #define hb_trace dev_info
 #define hb_ptrace pr_info
 #else
+/*#undef dev_info(dev, fmt, arg...)
+  #define dev_info(dev, fmt, arg...) do { (void)(dev); } while (0)*/
 #define hb_trace(dev, format, arg...) do { (void)(dev); } while (0)
-//#define hb_trace(fmt, ...) ({ if (0) printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__); 0; })
-#define pr_ptrace(fmt, ...) ({ if (0) printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__); 0; })
+
+//#define pr_ptrace(fmt, ...) ({ if (0) printk(KERN_DEBUG pr_fmt(fmt), ##__VA_ARGS__); 0; })
+#define pr_ptrace(fmt, ...)do { } while(0)
 #endif
 
 #define SOC_I5CCDHB_BUS_PARAM (SOCAM_PCLK_SAMPLE_RISING | \
@@ -132,7 +135,7 @@ static int i5ccdhb_link_setup(struct media_entity *entity,
 			      const struct media_pad *local,
 			      const struct media_pad *remote, u32 flags)
 {
-  printk("_________%s________\r\n",__func__);
+  //printk("_________%s________\r\n",__func__);
   return 0;
 }
 
@@ -198,6 +201,23 @@ void i5ccdhb_set_vdren( struct soc_i5ccdhb_data* data , unsigned enable)
 	gpio_set_value( plat_data->vdr_en_gpio, enable);	
 }
 
+void i5ccdhb_set_shen( struct soc_i5ccdhb_data* data , unsigned enable)
+{
+  struct soc_i5ccdhb_platform_data *plat_data = 
+		data->pdevice->dev.platform_data;
+  
+	gpio_set_value( plat_data->sh_en_gpio, enable);	
+  //gpio_set_value( plat_data->sh_en_gpio, 1);	
+}
+
+int i5ccdhb_get_shrdy( struct soc_i5ccdhb_data* data )
+{
+  struct soc_i5ccdhb_platform_data *plat_data = 
+		data->pdevice->dev.platform_data;
+  
+	return gpio_get_value( plat_data->sh_rdy_gpio );	
+}
+
 
 /*!
   \brief check if headboard is powered
@@ -209,9 +229,26 @@ void i5ccdhb_set_vdren( struct soc_i5ccdhb_data* data , unsigned enable)
   \pre i5fpga driver (spi client device was loaded)
   
 */
-int i5ccdhb_is_powered( )
+int i5ccdhb_is_powered( struct soc_i5ccdhb_data* data )
 {
 	
+  int result = i5ccdhb_get_shrdy( data );
+
+  printk("%s:::::::: %i\r\n",
+         __func__ , result );
+#if 0
+  if( 0 == result )
+  {
+    return 0;
+  }
+  return -1;
+#else
+  if( 0 == result )
+  {
+    return -1;
+  }
+  return 0;
+#endif  
 #if 0 /* FIXME!!! */
   u32 regval = 0xffffffff;
 	int result = i5fpga_read_headboard_reg(sdev, I5FPGA_STATUS_REG, 
@@ -239,10 +276,46 @@ int i5ccdhb_is_powered( )
   \pre i5fpga driver (spi client device was loaded)
   
 */
-int i5ccdhb_power_up( )
+int i5ccdhb_power_up( struct soc_i5ccdhb_data* data )
 {
+#define SH_RDY_WAIT_TIMEOUT 10
+	int result = i5ccdhb_is_powered( data );
+  
+  int sh_rdy_timeout = 0;
 
-	int result = i5ccdhb_is_powered();
+  //printk("_____________%s__res: %i__________\r\n",__func__,result);
+  
+  if( 0 != result )
+  {
+    /* Set SH_EN flag */
+    i5ccdhb_set_shen( data , 1 );
+    
+
+    /* Wait for SH_RDY flag */
+    do
+    {
+      schedule_timeout_uninterruptible(msecs_to_jiffies(100));
+      result = i5ccdhb_is_powered( data );
+      sh_rdy_timeout++;
+    }
+    while( ( SH_RDY_WAIT_TIMEOUT > sh_rdy_timeout ) &&
+           ( 0 != result ) );
+    
+    if( 0 != result )
+    {
+      printk("_________%s TIMEOUT!______-\r\n",
+             __func__);
+    }
+    
+  }
+/*
+  if (data->ad9923a) 
+  {
+    i5ccdhb_set_vdren(data,1);
+    }*/
+  
+  return result;
+
 #if 0 /* FIXME */
 	if (0 != result) {
 		u32 regval = 0xffffffff;
@@ -257,7 +330,6 @@ int i5ccdhb_power_up( )
 */
 	}
 #endif
-	return result;
 }
 
 /*!
@@ -272,11 +344,17 @@ static int i5ccdhb_power_down(struct soc_i5ccdhb_data* data)
   
 
 	int result = 0;
+  int sh_rdy_timeout = 0;
   /* FIXME!! */
 
-  result = i5ccdhb_is_powered();
+  result = i5ccdhb_is_powered( data );
+  
+  //printk("_____________%s__res: %i__________\r\n",__func__,result);
+  result = 0;
+  
 	if (0 == result) {
-		if (data->ad9923a) {
+		if (data->ad9923a) 
+    {
       i5ccdhb_set_vdren(data,0);
 /*
   TODO:
@@ -285,6 +363,32 @@ static int i5ccdhb_power_down(struct soc_i5ccdhb_data* data)
   - write control reg
 */
 		}
+    /* Unset SH_EN flag */
+    i5ccdhb_set_shen( data , 0 );
+    
+    /* Wait for SH_RDY flag */
+    do
+    {
+      schedule_timeout_uninterruptible(msecs_to_jiffies(100));
+      result = i5ccdhb_is_powered( data );
+      printk("___%s %i___\r\n",
+             __func__ , sh_rdy_timeout );
+      sh_rdy_timeout++;
+    }
+    while( ( SH_RDY_WAIT_TIMEOUT > sh_rdy_timeout ) &&
+           ( 0 == result ) );
+
+    if( 0 == result )
+    {
+      printk("_________%s TIMEOUT!______-\r\n",
+             __func__);
+      result = -1;
+    }
+    else
+    {
+      result = 0;
+    }
+
 	}
 	else
   {
@@ -355,7 +459,6 @@ static struct i2c_client *i5ccdhb_probe_i2c_dev(struct i2c_adapter *i2c_adap,
 					struct i2c_board_info const *info)
 {			
 
-  struct i2c_client *_n = NULL;
 	struct i2c_client *client = NULL;
   struct i2c_client *result = NULL;
   int addr = info->addr; //0x48;
@@ -365,9 +468,6 @@ static struct i2c_client *i5ccdhb_probe_i2c_dev(struct i2c_adapter *i2c_adap,
    */
   result = device_for_each_child(&i2c_adap->dev, (void*)&addr,
                                  i5ccdhb_i2c_check_addr_probed );
-
-  printk("result: %X\r\n",
-         result);
   
   if( NULL == result )
   {
@@ -397,7 +497,7 @@ static int i5ccdhb_probe_i2c_devs(struct soc_i5ccdhb_data* data)
 		data->pdevice->dev.platform_data;
 	struct i2c_adapter *i2c_adap = 0;
 
-  printk("Probing I2C devices\r\n");
+  dev_info(i5ccdhb_to_device(data),"Probing I2C devices\r\n");
   
 	 /* lock */	
 	i2c_adap = i2c_get_adapter(plat_data->i2c_adapter_id);
@@ -1215,8 +1315,11 @@ static int soc_i5ccdhb_queryctrl(struct v4l2_subdev *sd, struct v4l2_queryctrl *
 static int soc_i5ccdhb_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl);
 static int soc_i5ccdhb_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl);
 /* TODO: */
+#if 0
 static int soc_i5ccdhb_s_power(struct v4l2_subdev *sd, int on);
 static int i5ccdhb_set_power(struct v4l2_subdev *subdev, int on);
+#endif
+
 static struct v4l2_subdev_core_ops soc_i5ccdhb_subdev_core_ops = {
 
   .ioctl = i5ccdhb_dummy_op ,
@@ -1257,7 +1360,7 @@ static struct v4l2_subdev_core_ops soc_i5ccdhb_subdev_core_ops = {
 	/* int (*g_register)(struct v4l2_subdev *sd, struct v4l2_dbg_register *reg); */
 	/* int (*s_register)(struct v4l2_subdev *sd, struct v4l2_dbg_register *reg); */
 #endif
-	.s_power = i5ccdhb_set_power , //soc_i5ccdhb_s_power,
+	//.s_power = i5ccdhb_set_power , //soc_i5ccdhb_s_power,
 };
 
 
@@ -1654,13 +1757,9 @@ static int i5ccdhb_streamon(struct soc_i5ccdhb_data *data)
 
 static int soc_i5ccdhb_s_stream(struct v4l2_subdev *sd, int enable)
 {
-// TODO:
 	struct soc_i5ccdhb_data *d = v4l2_get_subdevdata(sd);
 	dev_info(i5ccdhb_to_device(d), "%s - enable %i\n", __func__, enable);
-	//d->streaming = enable;
-
-  //printk("________________%s___________\r\n",__func__);
-  
+    
   if (d->streaming == enable) {
     printk("_______________ ERROR %s___________\r\n",__func__ );
 		return -1;
@@ -1673,73 +1772,6 @@ static int soc_i5ccdhb_s_stream(struct v4l2_subdev *sd, int enable)
 	return 0;
 }
 
-static int __i5ccdhb_set_power( struct soc_i5ccdhb_data *i5ccdhb ,  int on )
-{
-  //printk("_________%s________%X\r\n",__func__,on);
-  return 0;
-}
-
-static int i5ccdhb_set_power(struct v4l2_subdev *subdev, int on)
-{
-	struct soc_i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
-	int ret = 0;
-
-	mutex_lock(&i5ccdhb->power_lock);
-
-	/* If the power count is modified from 0 to != 0 or from != 0 to 0,
-	 * update the power state.
-	 */
-	if (i5ccdhb->power_count == !on) {
-		ret = __i5ccdhb_set_power(i5ccdhb, !!on);
-		if (ret < 0)
-			goto done;
-	}
-
-	/* Update the power count. */
-	i5ccdhb->power_count += on ? 1 : -1;
-	WARN_ON(i5ccdhb->power_count < 0);
-
-done:
-	mutex_unlock(&i5ccdhb->power_lock);
-	return ret;
-}
-
-
-static int i5ccdhb_registered(struct v4l2_subdev *subdev)
-{
-  //printk("_________%s________\r\n",__func__);
-  return 0;
-#if 0
-	struct i2c_client *client = v4l2_get_subdevdata(subdev);
-	struct i5ccdhb *i5ccdhb = to_i5ccdhb(subdev);
-	s32 data;
-	int ret;
-
-	dev_info(&client->dev, "Probing I5CCDHB at address 0x%02x\n",
-			client->addr);
-
-	ret = i5ccdhb_power_on(i5ccdhb);
-	if (ret < 0) {
-		dev_err(&client->dev, "I5CCDHB power up failed\n");
-		return ret;
-	}
-
-	/* Read and check the sensor version */
-	data = i5ccdhb_read(client, I5CCDHB_CHIP_VERSION);
-	if (data != I5CCDHB_CHIP_ID_REV1 && data != I5CCDHB_CHIP_ID_REV3) {
-		dev_err(&client->dev, "I5CCDHB not detected, wrong version "
-				"0x%04x\n", data);
-		return -ENODEV;
-	}
-
-	i5ccdhb_power_off(i5ccdhb);
-
-	dev_info(&client->dev, "I5CCDHB detected at address 0x%02x\n",
-			client->addr);
-
-	return ret;
-#endif
-}
 
 static int i5ccdhb_open(struct v4l2_subdev *subdev, struct v4l2_subdev_fh *fh)
 {
@@ -1747,37 +1779,26 @@ static int i5ccdhb_open(struct v4l2_subdev *subdev, struct v4l2_subdev_fh *fh)
 //  return 0;
 
 	struct v4l2_mbus_framefmt *format;
-	struct v4l2_rect *crop;
   
   struct soc_i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
-
-	crop = v4l2_subdev_get_try_crop(fh, 0);
-	crop->left = I5CCDHB_COLUMN_START_DEF;
-	crop->top = I5CCDHB_ROW_START_DEF;
-	crop->width = I5CCDHB_WIDTH; // I5CCDHB_WINDOW_WIDTH_DEF;
-	crop->height = I5CCDHB_HEIGHT; //I5CCDHB_WINDOW_HEIGHT_DEF;
-
+  
 	format = v4l2_subdev_get_try_format(fh, 0);
 	format->code = V4L2_MBUS_FMT_Y12_1X12;
 	format->width = I5CCDHB_WIDTH; //I5CCDHB_WINDOW_WIDTH_DEF;
 	format->height = I5CCDHB_HEIGHT; //I5CCDHB_WINDOW_HEIGHT_DEF;
 	format->field = V4L2_FIELD_NONE;
 	format->colorspace = V4L2_COLORSPACE_REC709; //V4L2_COLORSPACE_SRGB;
-
   //i5ccdhb->format = format;
   
-
-	return i5ccdhb_set_power(subdev, 1);
+  return 0;
 }
 
 static int i5ccdhb_close(struct v4l2_subdev *subdev, struct v4l2_subdev_fh *fh)
 {
-  //printk("_________%s________",__func__);
-	return i5ccdhb_set_power(subdev, 0);
+  return 0;
 }
 
 static const struct v4l2_subdev_internal_ops i5ccdhb_subdev_internal_ops = {
-  .registered = i5ccdhb_registered,
   .open = i5ccdhb_open,
   .close = i5ccdhb_close,
 };
@@ -1800,7 +1821,7 @@ static const struct v4l2_subdev_internal_ops i5ccdhb_subdev_internal_ops = {
 static int i5ccdhb_pipeline_link_notify(struct media_pad *source,
 				    struct media_pad *sink, u32 flags)
 {
-  printk("_________%s________",__func__);
+  dev_info(i5ccdhb_to_device(data),"_________%s________",__func__);
   return 0;
 
 	int source_use = isp_pipeline_pm_use_count(source->entity);
@@ -1837,7 +1858,8 @@ static int i5ccdhb_get_v4l2_master_entity_callback(struct device *dev, void *p)
   {
     return 0;
   }
-  printk("V4L2: Inited: %s %p\r\n", v4l2_dev->name, v4l2_dev);
+  dev_info( dev ,"Found master V4L2 device: %s (%p)\r\n",
+           v4l2_dev->name, v4l2_dev);
   *pp = v4l2_dev;
   return 0;
 }
@@ -1877,13 +1899,9 @@ static int i5ccdhb_get_ccdc_entity( struct v4l2_device *v4l2_dev ,
   struct v4l2_subdev *sd;
   
   list_for_each_entry(sd, &v4l2_dev->subdevs, list) {
-    printk("sd->name: %s\r\n",sd->name );
     if( 0 == strncmp( sd->name , "OMAP3 ISP CCDC" , V4L2_SUBDEV_NAME_SIZE ) )
     {
-      printk("MATCH!\r\n");
       *entity = &sd->entity;
-      printk("Name: %s\r\n",
-             sd->entity.name );
       return 0;
     }
   }
@@ -1900,18 +1918,14 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
   struct soc_i5ccdhb_platform_data *plat_data = pdevice->dev.platform_data;
 	struct soc_i5ccdhb_data* data = get_priv(pdevice);
   
-  
-  
-  struct v4l2_device *v4l2_dev = NULL; //&plat_data->v4l2_dev; /* TOQU */ //dev_get_drvdata(pdevice.dev);
-  int result = 0;
-  
-  struct v4l2_subdev *sd = NULL; //&plat_data->v4l2_subdev;
+  struct v4l2_device *v4l2_dev = NULL; 
+  struct v4l2_subdev *sd = NULL;
   struct video_device *vdev;
-
   struct media_entity *ccdc_entity = NULL;
+
+  int result = 0;
 	int ret;
- 
-  
+    
   struct isp_parallel_platform_data *isp_parallel_pdata = &isp_subdev_data.bus.parallel;
 
   /* Configure Parallel Platform Data */
@@ -1920,10 +1934,9 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
   isp_parallel_pdata->hs_pol = 0;
   isp_parallel_pdata->vs_pol = 0;
   isp_parallel_pdata->bridge = 0;
+  
 
-  printk("________________REGISTER_V4L2 START_______\r\n");
-
-  /* Get data of master v4l device */
+  /* Get data of master v4l device ISP */
   i5ccdhb_get_v4l2_master_entity( &v4l2_dev );
   
   if( NULL == v4l2_dev )
@@ -1934,26 +1947,21 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
   
   data->v4l2_dev = v4l2_dev;
   
-  /****************************** START OF EDIT 2011_12_02 ******************/
-  printk("V4L2: %s\r\n",data->v4l2_dev->name);
-  
+  /* Initialize V4L2 subdev */
   v4l2_subdev_init(&data->subdev, &soc_i5ccdhb_subdev_ops);
   data->subdev.internal_ops = &i5ccdhb_subdev_internal_ops;
   data->subdev.host_priv = &isp_subdev_data;
   
-  snprintf(data->subdev.name, V4L2_SUBDEV_NAME_SIZE, "%s_v4l2subdev",
-           dev_name(&pdevice->dev));
+  snprintf(data->subdev.name, V4L2_SUBDEV_NAME_SIZE, "I5CCDHB Sensor" );
   data->subdev.grp_id = 1 << 16; /* group ID for isp subdevs */
 
-	v4l2_set_subdevdata(&data->subdev, data ); //&pdevice->dev);
-  
+	v4l2_set_subdevdata(&data->subdev, data );
+  	
   data->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-  
-  
-
-	data->media_pad.flags = MEDIA_PAD_FL_SOURCE;
-  //data->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
+  data->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
   data->subdev.entity.ops = &i5ccdhb_media_ops;
+  
+  data->media_pad.flags = MEDIA_PAD_FL_SOURCE;
   
 	ret = media_entity_init(&data->subdev.entity, 1, &data->media_pad, 0);
   
@@ -1962,20 +1970,18 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
     printk("Could not init media entity\r\n");
     return -EINVAL;
   }
-
-	
+  
+  /* Register V4L2 subdev with ISP */
 	ret = v4l2_device_register_subdev(data->v4l2_dev, &data->subdev);
-  printk( "%s(%p): ret(register_subdev) = %d\n", __func__, data, ret);
   if( 0 > ret )
   {
     printk("Could not register subdev with master v4l2 device\r\n");
     return -EINVAL;
   }
-
-  /* Register subdev-node 
+  
+  /* Register subdev device node 
    * see:  v4l2_device_register_subdev_nodes()
    */
-  
   sd = &data->subdev;
   vdev = &sd->devnode;
   strlcpy(vdev->name, sd->name, sizeof(vdev->name));
@@ -1992,6 +1998,7 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
   sd->entity.v4l.minor = vdev->minor;
 #endif
 
+  /* Get entity of ISP CCDC */
   if( 0!= i5ccdhb_get_ccdc_entity( v4l2_dev ,
                                    &ccdc_entity ) )
   {
@@ -1999,10 +2006,8 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
     return -1;
 
   }
-
-  printk("ccdc entity: %s\r\n",
-         ccdc_entity->name );
   
+  /* Create link between I5CCDHB source pad and ISP CCDC sink pad */
   ret = media_entity_create_link( &data->subdev.entity, 0, ccdc_entity , 0 ,
                                   0);
   if( 0 > ret )
@@ -2040,14 +2045,6 @@ static int i5ccdhb_probe(struct platform_device* pdevice)
 			"Platform has not set platform data!\n");
 		return -EINVAL;
 	}
-#if 0
-	if (!plat_data->dev) {
-		dev_err(&pdevice->dev,
-			"Platform has not set soc_camera_device pointer!\n");
-		return -EINVAL;
-	}
-#endif
-
 
 	/* Set initial values for the sensor struct. */
 	data = kzalloc(sizeof(struct soc_i5ccdhb_data), GFP_KERNEL);
@@ -2059,15 +2056,18 @@ static int i5ccdhb_probe(struct platform_device* pdevice)
 	}
 	hb_trace(&pdevice->dev, "%s: allocation\n", __func__);
 
-  /* Request GPIO */
+  /* Request GPIOs */
 	gpio_request( plat_data->vdr_en_gpio , "VDR_EN" );
 	gpio_direction_output( plat_data->vdr_en_gpio , 0 );
 	
-	mutex_init(&data->lock);
-  mutex_init(&data->power_lock);
+  gpio_request( plat_data->sh_rdy_gpio , "SH_RDY" );
+  gpio_direction_input( plat_data->sh_rdy_gpio );
 
-  data->power_count = 0;
-	
+  gpio_request( plat_data->sh_en_gpio , "SH_EN" );
+	gpio_direction_output( plat_data->sh_en_gpio , 0 );
+  
+	mutex_init(&data->lock);
+  	
 	// TODO:
 	// data->pdevice = container_of(get_device(&pdevice->dev), struct platform_device, dev);
 	data->pdevice = pdevice;
@@ -2095,7 +2095,7 @@ static int i5ccdhb_probe(struct platform_device* pdevice)
 	-> power up headboard
 */
 	if (0 == result) {
-		result = i5ccdhb_power_up();
+		result = i5ccdhb_power_up( data );
 		hb_trace(&pdevice->dev, "%s: powered hb (%d)\n", __func__, result);
 	}
 /*
@@ -2140,25 +2140,19 @@ alloc_spi:
 		goto err_subdev;
 	}
   
-  printk("Write SPI Data\r\n");
+  /* # afe soft reset */
   result = i5ad9923a_write_reg( data->ad9923a, afe_swreset_reg, 0x01 );
-  printk("Wrote SPI Data: %i\r\n",result);
   
-  //goto hw_init_done;
-
-/* TODO: */
-/*	data->mclk = plat_data->camera_data.mclk; */
-/* TODO: see include/linux/videodev2.h*/
-#if 0
-	data->mbus_fmt.field = V4L2_FIELD_NONE;
-	data->mbus_fmt.code = V4L2_MBUS_FMT_Y12_1X12;
-	/* HD and modern captures. */
-	data->mbus_fmt.colorspace = V4L2_COLORSPACE_REC709;
-#endif
 	data->streamcap.capability = V4L2_CAP_TIMEPERFRAME;
 	data->streamcap.capturemode = 0;
 	data->streamcap.timeperframe.denominator = 1;
 	data->streamcap.timeperframe.numerator = 1;
+  
+	data->format.code = V4L2_MBUS_FMT_Y12_1X12;
+	data->format.width = I5CCDHB_WIDTH; //I5CCDHB_WINDOW_WIDTH_DEF;
+	data->format.height = I5CCDHB_HEIGHT; //I5CCDHB_WINDOW_HEIGHT_DEF;
+	data->format.field = V4L2_FIELD_NONE;
+	data->format.colorspace = V4L2_COLORSPACE_REC709; //V4L2_COLORSPACE_SRGB;
 
 /*
 	-> parse afe setup
@@ -2169,72 +2163,23 @@ alloc_spi:
 	if (0 == result) {
 		result = i5ccdhb_parse_setup(data);
 	}
-#if 0
-	if (0 == result) {
-		result = fpga_set_cropping(data->fpga, &data->regcfg, 
-				crop_mode_field );
-		dev_info(&pdevice->dev, "%s: init cropping (%d) \n", __func__,
-				result);
-	}
-#endif
-	if (0 == result) {
-		u32 width, height, top, left;
-#if 0
-		result = fpga_get_cropwidth(data->fpga, &left, &width);
-		if (0 == result) {
-			result = fpga_get_cropheight(data->fpga, &top, &height);
-		}
 
-		/* 
-		 * TODO: 
-		 * mx3_camera expects the sensor to do the cropping (2.6.34)
-		 * and 
-		 */
-		if (0 == result) {
-			u32 cwidth = width &= (~0x7);
-			u32 cleft = (width - cwidth) / 2 + left;
-			result = fpga_set_cropwidth(data->fpga, cleft, cwidth);
-		}
-		if (0 == result) {
-			result = fpga_get_cropwidth(data->fpga, &left, &width);
-		}
-//#else
-    height=1024;
-    width=767;
-    height=784;
-    width=524;
-	
-		if (0 == result) {
-			dev_info(&pdevice->dev, "%s: probed %u x %u \n", 
-				__func__, width, height);
-			data->mbus_fmt.width = width;
-			data->mbus_fmt.height = height;
-			data->croprect.left = data->croprect.top = 0;
-			data->croprect.width = width;
-			data->croprect.height = height;
-    }
-#endif	
+  
+  if (0 == result) {
+    result = i5ccdhb_headboard_init(data);
+  }
 		
-		if (0 == result) {
-			result = i5ccdhb_headboard_init(data);
-		}
-	}
-	
 	if (0 != result) {
 		goto err_afesetup;
 	}
-
-hw_init_done:
-
+  
 	result = i5ccdhb_register_attributes(data);
-
+  
+  /* Connect driver to media controller framework */
 	if (0 == result) {
 
     result = i5ccdhb_register_v4l2_device( pdevice );
-
-    //i5ccdhb_streamoff( data ); /* FIXME!! */
     
-		
 		if (result)
       goto err_v4l2reg;
 
@@ -2377,9 +2322,9 @@ static __init int i5ccdhb_init(void)
  */
 static void __exit i5ccdhb_clean(void)
 {
-	printk(KERN_INFO "%s >>>\n", __func__);
+	//printk(KERN_INFO "%s >>>\n", __func__);
 	platform_driver_unregister(&i5ccdhb_driver);
-	printk(KERN_INFO "%s <<<\n", __func__);
+	//printk(KERN_INFO "%s <<<\n", __func__);
 }
 
 /* force init after all devices are done */

@@ -37,21 +37,10 @@ struct soc_i5ccdhb_platform_data {
 	u16 afe_spi_chipselect; /* spi chipselect for afe subdevice */
 	u32 afe_spi_maxspeed; /* spi speed for afe subdevice */
 
-  u16 vdr_en_gpio; /* GPIO to set VDR_EN */
+  u16 vdr_en_gpio; /* GPIO connected to VDR_EN */
+  u16 sh_en_gpio;  /* GPIO connected to SH_EN */
+  u16 sh_rdy_gpio; /* GPIO connected to SH_RDY */
   
-//  struct v4l2_subdev v4l2_subdev;
-  
-  
-
-//  struct media_pad pad;  
-
-  
-  
-/*
-	void *device_data;
-	int (*active) (int id);
-	void (*inactive) (int id);
-*/
 };
 
 struct i5fpga_platform_data {

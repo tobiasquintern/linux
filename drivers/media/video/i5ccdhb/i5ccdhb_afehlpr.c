@@ -27,6 +27,9 @@
 
 #include "i5ad9923a.h"
 
+/*#undef  pr_info(fmt, ...)
+  #define pr_info(fmt, ...)do { } while(0)*/
+
 IMPORT_SYMBOL(i5ad9923a_write_reg);
 
 enum

@@ -73,7 +73,11 @@ static struct soc_i5ccdhb_platform_data omap3evm_soc_i5ccdhb_pdata = {
     .afe_spi_master_id = 3, /* bind to McSPI3 (spi3) */
     .afe_spi_chipselect = 0, /* bind to McSPI3 CS0 -> ADapCL SS1 */
     .afe_spi_maxspeed = 2000000,
-    .vdr_en_gpio = 144, /* GPIO 144 controls VDR_EN */
+    .vdr_en_gpio = 144, /* GPIO 144 is connected to VDR_EN */
+    .sh_rdy_gpio = 145, /* GPIO 145 is connected to SH_RDY */
+    .sh_en_gpio  = 146, /* GPIO 146 is connected to SH_EN  */
+    
+    
     
 };
 
@@ -566,23 +570,28 @@ static void __init beagle_opp_init(void)
 #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
 static void __init omap3_beagle_init_i5ccdhb(void)
 {
-        
-  
+
   /* Init SPI3 Pins for Headboard */
   omap_mux_init_signal("sdmmc2_clk.mcspi3_clk", OMAP_PIN_OUTPUT);
   omap_mux_init_signal("sdmmc2_cmd.mcspi3_simo", OMAP_PIN_OUTPUT);
   omap_mux_init_signal("sdmmc2_dat3.mcspi3_cs0", OMAP_PIN_OUTPUT);
   
   /* Init VDR_EN pin */
-  omap_mux_init_signal("gpio_144", OMAP_PIN_OUTPUT); /* VDREN */  
+  omap_mux_init_signal("gpio_144", OMAP_PIN_OUTPUT); /* VDR_EN */  
   
+  /* Init SH_RDY pin */
+  omap_mux_init_signal("gpio_145", OMAP_PIN_INPUT_PULLUP); /* SH_RDY */ 
+  
+  /* Init SH_EN pin */
+  omap_mux_init_signal("gpio_146", OMAP_PIN_OUTPUT); /* SH_EN */ 
+
   /* Init I2C2 Pins */
   omap_mux_init_signal("i2c2_scl", OMAP_PIN_OUTPUT);
   omap_mux_init_signal("i2c2_sda", OMAP_PIN_OUTPUT);
 
   /* Register I2C Bus */  
   omap_register_i2c_bus( 2 , 100, NULL, 0 );
-
+  
 }
 #endif /* #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE) */
 
