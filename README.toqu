@@ -1,0 +1,46 @@
+# Beschreibung, wie die CCDHB-Treiber in den Linux-Kernel 3.1 integriert wurden.
+
+
+### Versionskontrolle
+- Fork von Linux 3.1 bei Github erzeugt
+  * https://github.com/tobiasquintern/linux
+
+### Änderungen im Board-Treiber
+- Setzen des Multiplexings für Pins ( Funktion omap3_beagle_init_i5ccdhb() )
+  * SPI2
+  * I2C
+  * VDR_EN, SH_EN, SH_RDY
+- Aufruf der ISP Konfigurations-Funktion omap3_init_camera()
+- Einbinden des i5ccdhb-Treibers als Platform-Device
+  * Konfiguration über omap3_beagle_i5ccdhb_device
+
+### Änderungen im CCDHB-Treiber
+- Es wurden alle Patches, die von TQ-Systems geliefert wurden in den Kernel gepatched.
+- FPGA relevanter Code wurde entfernt
+- soc_camera Code wurde entfernt oder V4L2-Subdev kompatibel gemacht.
+- Setzen des VDR_EN-Signals wurde auf GPIO 144 gelegt. Funktion i5ccdhb_set_vdren() wurde nach i5ccdhb.c verschoben.  
+- Setzen und Auslesen von SH_EN und SH_RDY hinzugefügt
+- Einbindung ins Media Controller Framework
+  * Einbindung erfolgt in Funktion i5ccdhb_register_v4l2_device()
+  * Treiber wird als V4L2 Subdevice mit "omap3isp" als Master registriert
+  * Device registriert sich als Media Controller Device
+    # Name: "I5CCDHB Sensor"
+    # 1 Source-Pad
+    # Erzeuge Link zwischen "I5CCDHB Sensor":0 Source Pad und "OMAP3 ISP CCDC":0 Sink pad
+
+### Änderungen am ISP-Treiber
+- Keine Änderungen notwendig
+
+### Getting started:
+
+# Quellen herunterladen und kompilieren
+git clone git://github.com/tobiasquintern/linux.git
+cd linux
+make ARCH=arm CROSS_COMPILE=/opt/TI/CodeSourcery/arm-2009q1//bin/arm-none-linux-gnueabi- i5ccdhb_bb_defconfig
+make ARCH=arm CROSS_COMPILE=/opt/TI/CodeSourcery/arm-2009q1//bin/arm-none-linux-gnueabi- uImage
+/opt/TI/CodeSourcery/arm-2009q1/bin/arm-none-linux-gnueabi-gcc -o /opt/bb_rootfs/tmp/capture Documentation/video4linux/i5ccdhb_capture.c
+
+# Nach dem Starten des kompilierten Kernels auf dem Target Frames grabben:
+/tmp/capture
+
+
