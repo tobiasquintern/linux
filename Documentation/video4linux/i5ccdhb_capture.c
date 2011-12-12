@@ -11,6 +11,9 @@
  *
  */
 
+
+#define NUM_BUFS 3
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -333,7 +336,7 @@ static void process_image2 (const void *           p , int len , int frame_num )
 
   int pixels = 0;
   
-  char name[] = "framex     ";
+  char name[] = "framex                       ";
 
   int min_val = 0xFFFF;
   int max_val = 0;
@@ -341,6 +344,7 @@ static void process_image2 (const void *           p , int len , int frame_num )
   uint16_t *pu16_filePtr = NULL;
   
   /* Analyze frame */
+  
   pu16_ptr = (uint16_t*)p;
   for( pixels = PIXELS_PER_LINE * LINES_PER_FRAME ; 0 != pixels ; pixels-- , pu16_ptr++ ) 
   {
@@ -352,16 +356,21 @@ static void process_image2 (const void *           p , int len , int frame_num )
     }
   }
   
-  printf("Min: %d Max: %d\n",min_val,max_val);
+  
+  
 
   if( 0 == max_val )
   {
-    printf("Frame %i invalid!\r\n",frame_num);
+    //printf("Frame %i invalid!\r\n",frame_num);
+    printf("X");
     return;
   }
-  memset( &au8_pbmData[0] , 0 , PBM_DATA_MAX_SIZE );
+  printf(".");
+  //return ;
+  //printf("Min: %d Max: %d\n",min_val,max_val);
+  //memset( &au8_pbmData[0] , 0 , PBM_DATA_MAX_SIZE );
   
-  sprintf(name , "frame%d.pbm", frame_num );
+  sprintf(name , "/frame%i.pgm", frame_num );
   
   /********** Store Image Data in Portable Graymap format *********/
   /********** http://en.wikipedia.org/wiki/Netpbm_format  ********/
@@ -682,7 +691,7 @@ init_mmap			(void)
 
   CLEAR (req);
 
-  req.count               = 4;
+  req.count               = NUM_BUFS;
   req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory              = V4L2_MEMORY_MMAP;
 
@@ -745,7 +754,7 @@ init_userp			(unsigned int		buffer_size)
 
   CLEAR (req);
 
-  req.count               = 4;
+  req.count               = NUM_BUFS;
   req.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory              = V4L2_MEMORY_USERPTR;
 
@@ -766,7 +775,7 @@ init_userp			(unsigned int		buffer_size)
     exit (EXIT_FAILURE);
   }
 
-  for (n_buffers = 0; n_buffers < 4; ++n_buffers) {
+  for (n_buffers = 0; n_buffers < NUM_BUFS; n_buffers++) {
     buffers[n_buffers].length = buffer_size;
     buffers[n_buffers].start = memalign (/* boundary */ page_size,
                                          buffer_size);

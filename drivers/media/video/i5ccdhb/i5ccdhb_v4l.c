@@ -11,7 +11,7 @@
  */
 
 static struct v4l2_mbus_framefmt *
-__i5ccdhb_get_pad_format(struct soc_i5ccdhb_data *i5ccdhb, struct v4l2_subdev_fh *fh,
+__i5ccdhb_get_pad_format(struct i5ccdhb_data *i5ccdhb, struct v4l2_subdev_fh *fh,
 			 unsigned int pad, enum v4l2_subdev_format_whence which)
 {
 	switch (which) {
@@ -64,7 +64,7 @@ int i5ccdhb_get_format(struct v4l2_subdev *subdev,
                        struct v4l2_subdev_fh *fh,
                        struct v4l2_subdev_format *format)
 {
-	struct soc_i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
+	struct i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
 
   format->format = *__i5ccdhb_get_pad_format(i5ccdhb, fh, format->pad,
                                              format->which);
@@ -77,7 +77,7 @@ int i5ccdhb_set_format(struct v4l2_subdev *subdev,
                        struct v4l2_subdev_fh *fh,
                        struct v4l2_subdev_format *format)
 {
-	struct soc_i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
+	struct i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
 	struct v4l2_mbus_framefmt *__format;
 
 	__format = __i5ccdhb_get_pad_format(i5ccdhb, fh, format->pad,

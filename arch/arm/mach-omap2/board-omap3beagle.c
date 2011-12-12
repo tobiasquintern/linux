@@ -68,7 +68,7 @@
 
 static struct isp_platform_data isp_plat_data;
 
-static struct soc_i5ccdhb_platform_data omap3evm_soc_i5ccdhb_pdata = {
+static struct soc_i5ccdhb_platform_data omap3_beagle_soc_i5ccdhb_pdata = {
   	.i2c_adapter_id = 2, /* bind to SPI2 */
     .afe_spi_master_id = 3, /* bind to McSPI3 (spi3) */
     .afe_spi_chipselect = 0, /* bind to McSPI3 CS0 -> ADapCL SS1 */
@@ -81,11 +81,11 @@ static struct soc_i5ccdhb_platform_data omap3evm_soc_i5ccdhb_pdata = {
     
 };
 
-struct platform_device omap3evm_i5ccdhb_device = {
+struct platform_device omap3_beagle_i5ccdhb_device = {
 	.name = "i5ccdhb", /* name must match the driver name */
 	.id = 0,
 	.dev = {
-		.platform_data = &omap3evm_soc_i5ccdhb_pdata,
+		.platform_data = &omap3_beagle_soc_i5ccdhb_pdata,
   },
 	.num_resources = 0,
 	.resource = NULL,
@@ -502,7 +502,7 @@ static struct platform_device *omap3_beagle_devices[] __initdata = {
 	&leds_gpio,
 	&keys_gpio,
   #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
-	&omap3evm_i5ccdhb_device,
+	&omap3_beagle_i5ccdhb_device,
 #endif
 };
 

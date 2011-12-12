@@ -144,32 +144,32 @@ static const struct media_entity_operations i5ccdhb_media_ops = {
 	.link_setup = i5ccdhb_link_setup,
 };
 
-static inline struct soc_i5ccdhb_data *get_priv(struct platform_device *pdev)
+static inline struct i5ccdhb_data *get_priv(struct platform_device *pdev)
 {
 //	struct v4l2_subdev *subdev = platform_get_drvdata(pdev);
-	return platform_get_drvdata(pdev); //container_of(subdev, struct soc_i5ccdhb_data, subdev);
+	return platform_get_drvdata(pdev); //container_of(subdev, struct i5ccdhb_data, subdev);
 }
 
 
 
-static inline struct soc_i5ccdhb_data* device_to_i5ccdhb(struct device* dev)
+static inline struct i5ccdhb_data* device_to_i5ccdhb(struct device* dev)
 {
 	return get_priv(to_platform_device(dev));
 }
 
-static inline struct device* i5ccdhb_to_device(struct soc_i5ccdhb_data *data) 
+static inline struct device* i5ccdhb_to_device(struct i5ccdhb_data *data) 
 {
 	return &data->pdevice->dev;
 }
 
 
-static inline int i5ccdhb_lock(struct soc_i5ccdhb_data *data)
+static inline int i5ccdhb_lock(struct i5ccdhb_data *data)
 {
 	int result = result = mutex_lock_interruptible(&data->lock);
 	return result;
 }
 
-static inline void i5ccdhb_unlock(struct soc_i5ccdhb_data *data)
+static inline void i5ccdhb_unlock(struct i5ccdhb_data *data)
 {
 	mutex_unlock(&data->lock);
 }
@@ -193,7 +193,7 @@ const static struct v4l2_fmtdesc i5ccdhb_formats[] = {
   \pre i5fpga driver (spi client device was loaded)
   
 */
-void i5ccdhb_set_vdren( struct soc_i5ccdhb_data* data , unsigned enable)
+void i5ccdhb_set_vdren( struct i5ccdhb_data* data , unsigned enable)
 {
   struct soc_i5ccdhb_platform_data *plat_data = 
 		data->pdevice->dev.platform_data;
@@ -201,7 +201,7 @@ void i5ccdhb_set_vdren( struct soc_i5ccdhb_data* data , unsigned enable)
 	gpio_set_value( plat_data->vdr_en_gpio, enable);	
 }
 
-void i5ccdhb_set_shen( struct soc_i5ccdhb_data* data , unsigned enable)
+void i5ccdhb_set_shen( struct i5ccdhb_data* data , unsigned enable)
 {
   struct soc_i5ccdhb_platform_data *plat_data = 
 		data->pdevice->dev.platform_data;
@@ -210,7 +210,7 @@ void i5ccdhb_set_shen( struct soc_i5ccdhb_data* data , unsigned enable)
   //gpio_set_value( plat_data->sh_en_gpio, 1);	
 }
 
-int i5ccdhb_get_shrdy( struct soc_i5ccdhb_data* data )
+int i5ccdhb_get_shrdy( struct i5ccdhb_data* data )
 {
   struct soc_i5ccdhb_platform_data *plat_data = 
 		data->pdevice->dev.platform_data;
@@ -229,7 +229,7 @@ int i5ccdhb_get_shrdy( struct soc_i5ccdhb_data* data )
   \pre i5fpga driver (spi client device was loaded)
   
 */
-int i5ccdhb_is_powered( struct soc_i5ccdhb_data* data )
+int i5ccdhb_is_powered( struct i5ccdhb_data* data )
 {
 	
   int result = i5ccdhb_get_shrdy( data );
@@ -276,7 +276,7 @@ int i5ccdhb_is_powered( struct soc_i5ccdhb_data* data )
   \pre i5fpga driver (spi client device was loaded)
   
 */
-int i5ccdhb_power_up( struct soc_i5ccdhb_data* data )
+int i5ccdhb_power_up( struct i5ccdhb_data* data )
 {
 #define SH_RDY_WAIT_TIMEOUT 10
 	int result = i5ccdhb_is_powered( data );
@@ -339,7 +339,7 @@ int i5ccdhb_power_up( struct soc_i5ccdhb_data* data )
   \pre i5fpga driver (spi client device was loaded)
   
 */
-static int i5ccdhb_power_down(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_power_down(struct i5ccdhb_data* data)
 {
   
 
@@ -402,7 +402,7 @@ static int i5ccdhb_power_down(struct soc_i5ccdhb_data* data)
 /* -------------------i2c subdevice management -------------------------------*/
 static void i5ccdhb_at24_setup(struct memory_accessor *macc, void *context)
 {
-	struct soc_i5ccdhb_data* data = (struct soc_i5ccdhb_data*)context;
+	struct i5ccdhb_data* data = (struct i5ccdhb_data*)context;
 	if (NULL != data) {
 /* BUGBUG: must store pointer, driver uses struct to get containing struct! */
 		data->at24_macc = macc;
@@ -490,7 +490,7 @@ static struct i2c_client *i5ccdhb_probe_i2c_dev(struct i2c_adapter *i2c_adap,
   - i5fpga driver (spi client device was loaded)
   - SHEN was set (headboard powered) 
 */
-static int i5ccdhb_probe_i2c_devs(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_probe_i2c_devs(struct i5ccdhb_data* data)
 {
 	int result; 
 	struct soc_i5ccdhb_platform_data *plat_data = 
@@ -546,7 +546,7 @@ static void i5ccdhb_remove_i2c_dev(struct i2c_client *client)
   \pre 
   - i5fpga driver (spi client device was loaded)
 */
-static void i5ccdhb_remove_i2c_devs(struct soc_i5ccdhb_data* data)
+static void i5ccdhb_remove_i2c_devs(struct i5ccdhb_data* data)
 {
 	i5ccdhb_remove_i2c_dev(data->lm73);
 	data->lm73 = 0;
@@ -556,7 +556,7 @@ static void i5ccdhb_remove_i2c_devs(struct soc_i5ccdhb_data* data)
 	data->ds1086l = 0;
 }
 
-static int i5ccdhb_verify_headboard(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_verify_headboard(struct i5ccdhb_data* data)
 {
 	struct i5ccdhb_eeprom_data* hbdata = NULL;
 	
@@ -620,7 +620,7 @@ static struct spi_device *i5ccdhb_probe_spi_dev(struct spi_master *master,
   - i5fpga driver (spi client device was loaded)
   - SHEN was set (headboard powered) 
 */
-static int i5ccdhb_probe_spi_devs(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_probe_spi_devs(struct i5ccdhb_data* data)
 {
 	int result; 
 	struct spi_master *spi_mst = 0;
@@ -663,7 +663,7 @@ static void i5ccdhb_remove_spi_dev(struct spi_device *device)
   \pre 
   - i5fpga driver (spi client device was loaded)
 */
-static void i5ccdhb_remove_spi_devs(struct soc_i5ccdhb_data* data)
+static void i5ccdhb_remove_spi_devs(struct i5ccdhb_data* data)
 {
 	if (data->ad9923a) {
 		i5ccdhb_remove_spi_dev(data->ad9923a);
@@ -672,7 +672,7 @@ static void i5ccdhb_remove_spi_devs(struct soc_i5ccdhb_data* data)
 }
 
 /* # reset headboard */
-static int i5ccdhb_headboard_reset(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_headboard_reset(struct i5ccdhb_data* data)
 {
 	int result;
 /* # disable VDR */
@@ -685,7 +685,7 @@ static int i5ccdhb_headboard_reset(struct soc_i5ccdhb_data* data)
 	return result;
 }
 
-int i5ccdhb_parse_setup(struct soc_i5ccdhb_data* data)
+int i5ccdhb_parse_setup(struct i5ccdhb_data* data)
 {
 	int result = afe_parse_regs(afe_default_regs, afe_default_regs_bytes, 
 			data->afe_regs, ARRAY_SIZE(data->afe_regs));
@@ -701,7 +701,7 @@ int i5ccdhb_parse_setup(struct soc_i5ccdhb_data* data)
 	return result;
 }
 
-int i5ccdhb_setup_afe(struct soc_i5ccdhb_data* data)
+int i5ccdhb_setup_afe(struct i5ccdhb_data* data)
 {
 	size_t i;
 	int trigger_done = 0;
@@ -734,7 +734,7 @@ int i5ccdhb_setup_afe(struct soc_i5ccdhb_data* data)
 	return result;
 }
 
-static int i5ccdhb_headboard_init(struct soc_i5ccdhb_data* data)
+static int i5ccdhb_headboard_init(struct i5ccdhb_data* data)
 {
 	int result = 0;
 	
@@ -818,7 +818,7 @@ static ssize_t i5ccdhb_show_empty(struct device *dev, struct device_attribute *d
 static ssize_t i5ccdhb_show_e2tag(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data *hbdata = 
 			(struct i5ccdhb_eeprom_data*)data->at24_data;
 	return snprintf(buf, PAGE_SIZE, "%s\n", hbdata->tag);
@@ -827,7 +827,7 @@ static ssize_t i5ccdhb_show_e2tag(struct device *dev, struct device_attribute *d
 static ssize_t i5ccdhb_show_e2sensor(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data *hbdata = 
 			(struct i5ccdhb_eeprom_data*)data->at24_data;
 	ssize_t result;
@@ -838,7 +838,7 @@ static ssize_t i5ccdhb_show_e2sensor(struct device *dev, struct device_attribute
 static ssize_t i5ccdhb_show_e2afe(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data *hbdata = 
 			(struct i5ccdhb_eeprom_data*)data->at24_data;
 	return snprintf(buf, PAGE_SIZE, "%s\n", hbdata->afe);
@@ -847,7 +847,7 @@ static ssize_t i5ccdhb_show_e2afe(struct device *dev, struct device_attribute *d
 static ssize_t i5ccdhb_show_e2version(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data *hbdata = 
 			(struct i5ccdhb_eeprom_data*)data->at24_data;
 	return snprintf(buf, PAGE_SIZE, "%s\n", hbdata->version);
@@ -856,7 +856,7 @@ static ssize_t i5ccdhb_show_e2version(struct device *dev, struct device_attribut
 static ssize_t i5ccdhb_show_e2serial(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data *hbdata = 
 			(struct i5ccdhb_eeprom_data*)data->at24_data;
 	ssize_t result = snprintf(buf, PAGE_SIZE, "%s\n", hbdata->serial);
@@ -874,7 +874,7 @@ static ssize_t i5ccdhb_show_exposure(struct device *dev, struct device_attribute
 			 char *buf)
 {
 	ssize_t result = 0;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	u32 exposure = afe_get_exposure_nsec( &data->regcfg, data->current_pixel_clock );
 	u32 msec = exposure / (1000 * 1000);
 	u32 usec = exposure % (1000 * 1000);
@@ -887,7 +887,7 @@ static ssize_t i5ccdhb_store_exposure(struct device *dev, struct device_attribut
 			 const char *buf, size_t count)
 {
 	unsigned usec, msec;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u%u", &msec, &usec);
 	dev_info(dev, "%s (%u) >>>\n", __func__, usec);
 	if (0 == i5ccdhb_lock(data)) {
@@ -904,7 +904,7 @@ static ssize_t i5ccdhb_show_fps(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
 	ssize_t result = 0;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	u32 num, frac;
 	afe_get_fps( &data->regcfg, data->current_pixel_clock, &num, &frac );
 	result = snprintf(buf, PAGE_SIZE, "%u.%.3u\n", num, frac);
@@ -915,7 +915,7 @@ static ssize_t i5ccdhb_store_fps(struct device *dev, struct device_attribute *da
 			 const char *buf, size_t count)
 {
 	unsigned mfps_frac, mfps_num;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u%u", &mfps_num, &mfps_frac);
 	if (0 == i5ccdhb_lock(data)) {
 		afe_set_fps( data->ad9923a, &data->regcfg, data->current_pixel_clock,
@@ -933,7 +933,7 @@ static ssize_t i5ccdhb_show_clk(struct device *dev, struct device_attribute *da,
 			 char *buf)
 {
 	ssize_t result = 0;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	u32 clk_mhz = data->current_pixel_clock / (1000 * 1000);
 	u32 clk_khz = data->current_pixel_clock % (1000 * 1000);
 	clk_khz = (clk_khz + 500) / 1000;
@@ -946,7 +946,7 @@ static ssize_t i5ccdhb_store_clk(struct device *dev, struct device_attribute *da
 {
 	u32 clk_mhz;
 	u32 clk_hz;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u", &clk_mhz);
 	if ((afe_frquency_mhz_min <= clk_mhz) && (afe_frquency_mhz_max >= clk_mhz)) {
 		clk_hz = clk_mhz * 1000 * 1000;
@@ -963,7 +963,7 @@ static ssize_t i5ccdhb_show_gain(struct device *dev, struct device_attribute *da
 {
 	ssize_t result = 0;
 	unsigned gain_num, gain_frac;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 
 	afe_get_gain( &data->regcfg, &gain_num, &gain_frac);
 	result = snprintf(buf, PAGE_SIZE, "%u.%.3u\n", gain_num, gain_frac);
@@ -974,7 +974,7 @@ static ssize_t i5ccdhb_store_gain(struct device *dev, struct device_attribute *d
 			 const char *buf, size_t count)
 {
 	unsigned gain_num, gain_frac;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u%u", &gain_num, &gain_frac);
 	if (0 == i5ccdhb_lock(data)) {
 		afe_set_gain( data->ad9923a, &data->regcfg, gain_num, gain_frac);
@@ -987,7 +987,7 @@ static ssize_t i5ccdhb_show_cdsgain(struct device *dev, struct device_attribute 
 			 char *buf)
 {
 	ssize_t result = 0;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 
 	result = snprintf(buf, PAGE_SIZE, "%u\n", afe_get_cdsgain(&data->regcfg));
 	
@@ -998,7 +998,7 @@ static ssize_t i5ccdhb_store_cdsgain(struct device *dev, struct device_attribute
 			 const char *buf, size_t count)
 {
 	u32 cdsgain;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u", &cdsgain);
 	if (0 == i5ccdhb_lock(data)) {
 		afe_set_cdsgain( data->ad9923a, &data->regcfg, cdsgain);
@@ -1011,7 +1011,7 @@ static ssize_t i5ccdhb_show_clamp(struct device *dev, struct device_attribute *d
 			 char *buf)
 {
 	ssize_t result = 0;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 
 	result = snprintf(buf, PAGE_SIZE, "%u\n", afe_get_clamp(&data->regcfg));
 	
@@ -1022,7 +1022,7 @@ static ssize_t i5ccdhb_store_clamp(struct device *dev, struct device_attribute *
 			 const char *buf, size_t count)
 {
 	u32 clamp;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	sscanf(buf, "%u", &clamp);
 	if (0 == i5ccdhb_lock(data)) {
 		afe_set_clamp( data->ad9923a, &data->regcfg, clamp);
@@ -1037,7 +1037,7 @@ static ssize_t i5ccdhb_show_aferegs(struct device *dev, struct device_attribute 
 	ssize_t result = 0;
 	char* worker = buf;
 	size_t i;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	
 	for (i = 0; i < data->regcnt; ++i) {
 		result += snprintf(worker, PAGE_SIZE - result, "%#03x\t%#06x\n", 
@@ -1053,7 +1053,7 @@ static ssize_t i5ccdhb_show_afeconf(struct device *dev, struct device_attribute 
 {
 	ssize_t result = 0;
 	char* worker = buf;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct afe_reg_conf *conf = &data->regcfg;
 	
 	result += snprintf(worker, PAGE_SIZE - result, "vpat_cnt %u\n", conf->afe_vpat_cnt);
@@ -1086,7 +1086,7 @@ static ssize_t i5ccdhb_show_hbdata(struct device *dev, struct device_attribute *
 {
 	ssize_t result = 0;
 	char* worker = buf;
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	struct i5ccdhb_eeprom_data* hbdata = 
 		hbdata = (struct i5ccdhb_eeprom_data*)data->at24_data;
 
@@ -1108,7 +1108,7 @@ static ssize_t i5ccdhb_show_hbdata(struct device *dev, struct device_attribute *
 static ssize_t i5ccdhb_store_afecmd(struct device *dev, struct device_attribute *da,
 			 const char *buf, size_t count)
 {
-	struct soc_i5ccdhb_data* data = device_to_i5ccdhb(dev);
+	struct i5ccdhb_data* data = device_to_i5ccdhb(dev);
 	
 	dev_info(dev, "%s - %s\n", __func__, buf);
 	if (0 == i5ccdhb_lock(data)) {
@@ -1177,7 +1177,7 @@ static DEVICE_ATTR(clamp, S_IRUGO | S_IWUGO, i5ccdhb_show_clamp, i5ccdhb_store_c
 static ssize_t i5ccdhb_afecfg_bin_read(struct kobject *kobj, struct bin_attribute *attr,
 		char *buf, loff_t off, size_t count)
 {
-	struct soc_i5ccdhb_data *i5ccdhb = device_to_i5ccdhb(container_of(kobj, 
+	struct i5ccdhb_data *i5ccdhb = device_to_i5ccdhb(container_of(kobj, 
 							struct device, kobj));
 /* TODO: */
 	if (afe_raw_data_size >= off + count) {
@@ -1191,7 +1191,7 @@ static ssize_t i5ccdhb_afecfg_bin_read(struct kobject *kobj, struct bin_attribut
 static ssize_t i5ccdhb_afecfg_bin_write(struct kobject *kobj, struct bin_attribute *attr,
 		char *buf, loff_t off, size_t count)
 {
-	struct soc_i5ccdhb_data *data = device_to_i5ccdhb(container_of(kobj, 
+	struct i5ccdhb_data *data = device_to_i5ccdhb(container_of(kobj, 
 							struct device, kobj));
 	ssize_t result = -1;
 
@@ -1218,7 +1218,7 @@ static struct bin_attribute i5ccdhb_bin_config = {
 };
 
 
-static int i5ccdhb_register_attributes(struct soc_i5ccdhb_data *data)
+static int i5ccdhb_register_attributes(struct i5ccdhb_data *data)
 {
 	struct device* dev = i5ccdhb_to_device(data);
 	int result = 0;
@@ -1276,7 +1276,7 @@ static int i5ccdhb_register_attributes(struct soc_i5ccdhb_data *data)
 	return result;
 }
 
-static void i5ccdhb_remove_attributes(struct soc_i5ccdhb_data *data)
+static void i5ccdhb_remove_attributes(struct i5ccdhb_data *data)
 {
 	struct device* dev = i5ccdhb_to_device(data);
 
@@ -1406,7 +1406,7 @@ static struct v4l2_subdev_ops soc_i5ccdhb_subdev_ops = {
 static int soc_i5ccdhb_g_parm(struct v4l2_subdev *sd, 
 				struct v4l2_streamparm *sp)
 {
-	struct soc_i5ccdhb_data *data = v4l2_get_subdevdata(sd);
+	struct i5ccdhb_data *data = v4l2_get_subdevdata(sd);
 	struct v4l2_captureparm *cparm = &sp->parm.capture;
 	int result = 0;
 
@@ -1454,7 +1454,7 @@ static int soc_i5ccdhb_g_parm(struct v4l2_subdev *sd,
 static int soc_i5ccdhb_s_parm(struct v4l2_subdev *sd, 
 				struct v4l2_streamparm *sp)
 {
-	struct soc_i5ccdhb_data *data = v4l2_get_subdevdata(sd);
+	struct i5ccdhb_data *data = v4l2_get_subdevdata(sd);
 	struct v4l2_fract *timeperframe = &sp->parm.capture.timeperframe;
 	u32 fps_num, fps_frac, mfps;	/* target frames per secound */
 	u32 fps_num_max, fps_frac_max, mfps_max;
@@ -1568,7 +1568,7 @@ static int soc_i5ccdhb_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
 	int result = -EBUSY;
 	u32 tmp1, tmp2;
-	struct soc_i5ccdhb_data *data = v4l2_get_subdevdata(sd);
+	struct i5ccdhb_data *data = v4l2_get_subdevdata(sd);
 	hb_trace(i5ccdhb_to_device(data), "%s: +++\n", __func__);
 	
 	result = i5ccdhb_lock(data);
@@ -1617,7 +1617,7 @@ static int soc_i5ccdhb_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
  */
  static int soc_i5ccdhb_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 {
-	struct soc_i5ccdhb_data *data = v4l2_get_subdevdata(sd);
+	struct i5ccdhb_data *data = v4l2_get_subdevdata(sd);
 	int result = -EBUSY;
 	u32 tmp1, tmp2;
 
@@ -1699,7 +1699,7 @@ static int soc_i5ccdhb_g_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	return result;
 }
 
-static int i5ccdhb_streamoff(struct soc_i5ccdhb_data *data)
+static int i5ccdhb_streamoff(struct i5ccdhb_data *data)
 {
 	int result;
   
@@ -1716,7 +1716,7 @@ static int i5ccdhb_streamoff(struct soc_i5ccdhb_data *data)
 	return result;
 }
 
-static int i5ccdhb_streamon(struct soc_i5ccdhb_data *data)
+static int i5ccdhb_streamon(struct i5ccdhb_data *data)
 {
 	int result = i5ccdhb_setup_afe(data);
   //printk("________________%s___________\r\n",__func__);
@@ -1757,7 +1757,7 @@ static int i5ccdhb_streamon(struct soc_i5ccdhb_data *data)
 
 static int soc_i5ccdhb_s_stream(struct v4l2_subdev *sd, int enable)
 {
-	struct soc_i5ccdhb_data *d = v4l2_get_subdevdata(sd);
+	struct i5ccdhb_data *d = v4l2_get_subdevdata(sd);
 	dev_info(i5ccdhb_to_device(d), "%s - enable %i\n", __func__, enable);
     
   if (d->streaming == enable) {
@@ -1780,7 +1780,7 @@ static int i5ccdhb_open(struct v4l2_subdev *subdev, struct v4l2_subdev_fh *fh)
 
 	struct v4l2_mbus_framefmt *format;
   
-  struct soc_i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
+  struct i5ccdhb_data *i5ccdhb = v4l2_get_subdevdata(subdev);
   
 	format = v4l2_subdev_get_try_format(fh, 0);
 	format->code = V4L2_MBUS_FMT_Y12_1X12;
@@ -1916,7 +1916,7 @@ static int i5ccdhb_register_v4l2_device( struct platform_device* pdevice )
   /* Platform data: static struct in "board-omap3beagle.c" */
   
   struct soc_i5ccdhb_platform_data *plat_data = pdevice->dev.platform_data;
-	struct soc_i5ccdhb_data* data = get_priv(pdevice);
+	struct i5ccdhb_data* data = get_priv(pdevice);
   
   struct v4l2_device *v4l2_dev = NULL; 
   struct v4l2_subdev *sd = NULL;
@@ -2035,7 +2035,7 @@ static int i5ccdhb_probe(struct platform_device* pdevice)
 	int result = 0;
 	struct soc_i5ccdhb_platform_data *plat_data = 
 		pdevice->dev.platform_data;
-	struct soc_i5ccdhb_data* data = 0;
+	struct i5ccdhb_data* data = 0;
 
 
 	dev_info(&pdevice->dev, "%s >>>\n", __func__);
@@ -2047,7 +2047,7 @@ static int i5ccdhb_probe(struct platform_device* pdevice)
 	}
 
 	/* Set initial values for the sensor struct. */
-	data = kzalloc(sizeof(struct soc_i5ccdhb_data), GFP_KERNEL);
+	data = kzalloc(sizeof(struct i5ccdhb_data), GFP_KERNEL);
 	if (data == NULL) {
 		dev_err(&pdevice->dev,
 			"allocation error\n");
@@ -2229,7 +2229,7 @@ err_fpga:
 static int i5ccdhb_remove(struct platform_device* pdevice)
 {
 	struct soc_i5ccdhb_platform_data *plat_data = pdevice->dev.platform_data;
-	struct soc_i5ccdhb_data* data = get_priv(pdevice);
+	struct i5ccdhb_data* data = get_priv(pdevice);
 
 	v4l2_device_unregister_subdev(&data->subdev);
 

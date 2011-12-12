@@ -15,7 +15,7 @@
   * Konfiguration über omap3_beagle_i5ccdhb_device
 
 ### Änderungen im CCDHB-Treiber
-- Es wurden alle Patches, die von TQ-Systems geliefert wurden in den Kernel gepatched.
+- Es wurden alle Patches, die von TQ-Systems geliefert wurden, in den Kernel gepatched.
 - FPGA relevanter Code wurde entfernt
 - soc_camera Code wurde entfernt oder V4L2-Subdev kompatibel gemacht.
 - Setzen des VDR_EN-Signals wurde auf GPIO 144 gelegt. Funktion i5ccdhb_set_vdren() wurde nach i5ccdhb.c verschoben.  
@@ -44,3 +44,18 @@ make ARCH=arm CROSS_COMPILE=/opt/TI/CodeSourcery/arm-2009q1//bin/arm-none-linux-
 /tmp/capture
 
 
+### Media Controller Framework
+
+Zur Konfiguration des Media Controller Frameworks wird Laurent Pinchart's media-ctl verwendet.
+http://git.ideasonboard.org/?p=media-ctl.git;a=summary
+
+# Media Controller Framework Entities für andere Frame-Grabber vorbereiten:
+media-ctl -r 
+media-ctl -f '"OMAP3 ISP CCDC":1[Y12 784x524]'
+media-ctl -f '"OMAP3 ISP CCDC":0[Y12 784x524]'
+media-ctl -f '"I5CCDHB Sensor":0[Y12 784x524]'
+media-ctl -r -l '"I5CCDHB Sensor":0 -> "OMAP3 ISP CCDC":0 [1]'
+media-ctl -l '"OMAP3 ISP CCDC":1 -> "OMAP3 ISP CCDC output":0 [1]'
+
+# Video-Node ermitteln
+media-ctl -e "OMAP3 ISP CCDC output"

@@ -23,7 +23,7 @@ enum {
 /*!
  * Maintains the information on the current state of the headboard.
  */
-struct soc_i5ccdhb_data {
+struct i5ccdhb_data {
 	struct i2c_client *lm73;
 	struct i2c_client *at24;
 	struct i2c_client *ds1086l;
