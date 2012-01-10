@@ -183,6 +183,32 @@ static struct panel_config generic_dpi_panels[] = {
 		.name			= "samsung_lte430wq_f0c",
 	},
 
+  /* Evervision VGG482710 */
+	{
+		{
+			.x_res		= 480,
+			.y_res		= 272,
+
+			.pixel_clock	= 10000, /*9000,*/
+
+			.hfp		= 2, /* Horizontal front porch */
+			.hsw		= 41, /* Horizontal pulse width */
+			.hbp		= 2, /* Horizontal back porch */
+      
+      .vfp		= 2, /* Vertical front porch */
+			.vsw		= 10, /* Vertical pulse width */
+			.vbp		= 2, /* Vertical back porch */
+
+		},
+		.acbi			= 0x0,
+		.acb			= 0x0,
+		.config			= OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+    OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IEO ,
+		.power_on_delay		= 50,
+		.power_off_delay	= 100,
+		.name			= "evervision_vgg482710",
+	},
+
 	/* Seiko 70WVW1TZ3Z3 */
 	{
 		{

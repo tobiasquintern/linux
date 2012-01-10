@@ -233,7 +233,7 @@ static struct mtd_partition omap3beagle_nand_partitions[] = {
 
 static int beagle_enable_dvi(struct omap_dss_device *dssdev)
 {
-	if (gpio_is_valid(dssdev->reset_gpio))
+  if (gpio_is_valid(dssdev->reset_gpio))
 		gpio_set_value(dssdev->reset_gpio, 1);
 
 	return 0;
@@ -241,7 +241,7 @@ static int beagle_enable_dvi(struct omap_dss_device *dssdev)
 
 static void beagle_disable_dvi(struct omap_dss_device *dssdev)
 {
-	if (gpio_is_valid(dssdev->reset_gpio))
+  if (gpio_is_valid(dssdev->reset_gpio))
 		gpio_set_value(dssdev->reset_gpio, 0);
 }
 
@@ -260,6 +260,21 @@ static struct omap_dss_device beagle_dvi_device = {
 	.reset_gpio = -EINVAL,
 };
 
+static struct panel_generic_dpi_data lcd_panel = {
+	.name			= "evervision_vgg482710" ,
+  /*.platform_enable = beagle_enable_dvi,
+    .platform_disable = beagle_disable_dvi,*/
+};
+
+static struct omap_dss_device beagle_lcd_device = {
+	.type = OMAP_DISPLAY_TYPE_DPI,
+	.name = "omap3_lcd",
+  .driver_name = "generic_dpi_panel",
+  .data			= &lcd_panel,
+	.phy.dpi.data_lines = 24,
+	.reset_gpio = -EINVAL,
+};
+
 static struct omap_dss_device beagle_tv_device = {
 	.name = "tv",
 	.driver_name = "venc",
@@ -268,14 +283,15 @@ static struct omap_dss_device beagle_tv_device = {
 };
 
 static struct omap_dss_device *beagle_dss_devices[] = {
-	&beagle_dvi_device,
-	&beagle_tv_device,
+	&beagle_lcd_device,
+  &beagle_dvi_device,
+  &beagle_tv_device,
 };
 
 static struct omap_dss_board_info beagle_dss_data = {
 	.num_devices = ARRAY_SIZE(beagle_dss_devices),
 	.devices = beagle_dss_devices,
-	.default_device = &beagle_dvi_device,
+  .default_device = &beagle_lcd_device,
 };
 
 static void __init beagle_display_init(void)
@@ -286,6 +302,7 @@ static void __init beagle_display_init(void)
 			     "DVI reset");
 	if (r < 0)
 		printk(KERN_ERR "Unable to get DVI reset GPIO\n");
+
 }
 
 #include "sdram-micron-mt46h32m32lf-6.h"
@@ -501,7 +518,7 @@ static void __init omap3_beagle_init_irq(void)
 static struct platform_device *omap3_beagle_devices[] __initdata = {
 	&leds_gpio,
 	&keys_gpio,
-  #if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
+#if defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB) || defined(CONFIG_SOC_CAMERA_IROQ5_CCDHB_MODULE)
 	&omap3_beagle_i5ccdhb_device,
 #endif
 };

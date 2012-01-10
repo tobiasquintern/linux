@@ -252,6 +252,15 @@ static const struct fb_videomode modedb[] = {
 	{ NULL, 60, 480, 300, 41858, 56, 16, 11, 1, 80, 2, 0,
 		FB_VMODE_DOUBLE },
 
+  /* 480x272 @ 60 Hz
+   * used by beagleboard for 480x272 resolution.
+   * needed to set correct timing as follows:
+   * # cat /sys/devices/omapdss/display0/timings
+   * # 9931,480/2/2/41,272/2/2/10
+   */
+	{ NULL, 60, 480, 272, 100000, 2, 2, 2, 2 , 41, 10, 0,
+  FB_VMODE_NONINTERLACED },
+  
 	/* 480x300 @ 63 Hz, 39.6 kHz hsync */
 	{ NULL, 63, 480, 300, 40000, 56, 16, 11, 1, 80, 2, 0,
 		FB_VMODE_DOUBLE },
